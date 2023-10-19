@@ -10,11 +10,8 @@
 
 ## 使い方
 ### Chrome等ブラウザ
-PCより以下のcolab notebookを開き、  
-[ファイル] -> [ドライブにコピーを保存] から自分のドライブに複製し、最上部のパラメータ部分を編集して実行してみて下さい。  
-(開いただけでは編集不可)  
-https://colab.research.google.com/drive/1WqDNO67HHUm10LqevkiPggHo3UJUQug-?usp=sharing
-
+PCより以下のcolab notebookを開き、最上部のパラメータ部分を編集して実行してみて下さい。  
+https://colab.research.google.com/drive/1mVffPyH2XS5CTmnJ4cRUlpZkrOJLaLhs?usp=sharing  
 
 ### Windows環境の場合のコマンド等
 1. Pythonをインストール
