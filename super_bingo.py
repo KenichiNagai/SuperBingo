@@ -3,7 +3,7 @@
 '''
 
 # 手牌の牌姿を指定: 凡例: 19m456p789s / 東西南北白發中 or 1~7z / 花 or 華 or x
-TEHAI = '234777p234789s77zx'
+TEHAI = '23477789p111999s11zx'
 
 # 除外する牌を指定: 凡例: 19m456p789s / 東西南北白發中 or 1~7z / 花 or 華 or x
 EXECLUDE_TILE = '華'
@@ -12,7 +12,7 @@ EXECLUDE_TILE = '華'
 V_STOCK = 1
 
 # 試行回数
-TRY_NUM = 10000
+TRY_NUM = 50000
 
 # 何巡目のシミュレーションを表示するか(半角数字をカンマ区切りで指定)
 TURN_LIST = [6,12,18]
@@ -90,17 +90,6 @@ class tile_deck():
     def remove_tehai(self, tehai_list):
         for tile_name in tehai_list:
             self.tile_deck.remove(tile_name)
-
-    # 巡目に応じて牌山を減らす
-    def set_junme(self, junme_num):
-        # 巡目分だけ牌山を減らす
-        for _ in range(junme_num*3):
-            self.tile_deck.pop()
-        # 2人分の手牌と嶺上牌、ドラ表示牌を減らす
-        for _ in range(13*2 + 6):
-            self.tile_deck.pop()
-        if len(self.tile_deck) < 0:
-            raise Exception("牌山が不足しています。")
 
 
 # 手牌　str -> list
@@ -192,8 +181,9 @@ def handle_agari(tile_deck_instance, tehai_list = []):
 
     all_haiyama_num = len(tile_deck_instance.tile_deck)
 
-    total_chip_count = 0
+    total_tip_count = 0
     renchan = 0
+    tip_count_dict = {}
     while(1):
         all_haiyama_num = len(tile_deck_instance.tile_deck)
         if all_haiyama_num > 0:
@@ -207,57 +197,63 @@ def handle_agari(tile_deck_instance, tehai_list = []):
         else:
             break
 
-        chip_count1 = count_chip(draw_hai1, tehai_list)
+        tip_count1 = count_tip(draw_hai1, tehai_list)
 
         # 非確変のとき上段のみ
         if kakuhen == 0:
-            total_chip_count += chip_count1
+            total_tip_count += tip_count1
 
             # スーパービンゴでは華による突確なし
             if SUPER_BINGO:
-                if chip_count1 >= 6 and draw_hai1 != 'x':
+                if tip_count1 >= 6 and draw_hai1 != 'x':
                     kakuhen += 1
             else:
-                if chip_count1 >= 6:
+                if tip_count1 >= 6:
                     kakuhen += 1
-            if chip_count1 == 0:
+            if tip_count1 == 0:
                 v_stock -= 1
                 if v_stock < 0:
                     break
 
         # 確変以上のとき上下段
         elif kakuhen > 0:
-            chip_count2 = count_chip(draw_hai2, tehai_list)
-            total_chip_count += chip_count1
-            total_chip_count += chip_count2
+            tip_count2 = count_tip(draw_hai2, tehai_list)
+            total_tip_count += tip_count1
+            total_tip_count += tip_count2
 
             # スーパービンゴでは華による突確なし
             if SUPER_BINGO:
-                if chip_count1 >= 6 and draw_hai1 != 'x':
+                if tip_count1 >= 6 and draw_hai1 != 'x':
                     kakuhen += 1
-                if chip_count2 >= 6 and draw_hai2 != 'x':
+                if tip_count2 >= 6 and draw_hai2 != 'x':
                     kakuhen += 1
             else:
-                if chip_count1 >= 6:
+                if tip_count1 >= 6:
                     kakuhen += 1
-                if chip_count2 >= 6:
+                if tip_count2 >= 6:
                     kakuhen += 1
 
-            if chip_count1 == 0 and chip_count2 == 0:
+            if tip_count1 == 0 and tip_count2 == 0:
                 v_stock -= 1
                 if v_stock < 0:
                     break
+        
         renchan += 1
+        # 16R
+        if kakuhen > 2:
+            tip_count_dict[renchan] = total_tip_count * 2
+        else:
+            tip_count_dict[renchan] = total_tip_count
 
-    # 16Rの処理
-    if kakuhen >= 2:
-        total_chip_count *= 2
+        if renchan >= 31:
+            break
+
+    # 0連荘のとき　空の辞書を返す
+    # n連荘のとき　n連荘のときのチップ枚数を辞書で返す
+    return tip_count_dict
 
 
-    return total_chip_count, renchan
-
-
-def count_chip(draw_hai, tehai_list):
+def count_tip(draw_hai, tehai_list):
     count_num = 0
     nori_hai = calc_norihai(draw_hai)
     for nori in nori_hai:
@@ -344,36 +340,56 @@ def main():
     result_dfs = []
     max_graph = 0
 
-    for turn in tqdm(TURN_LIST, leave=False):
+
+    for turn in TURN_LIST:
         tip_num_dict[turn] = []
         renchan_num_dict[turn] = []
+    for _ in tqdm(range(TRY_NUM), leave=False):
+        tile_deck_instance = tile_deck(super_bingo = SUPER_BINGO)
+        tile_deck_instance.remove_tehai(tehai_list)
+        tile_deck_instance.remove_tehai(execlude_tile_list)
+        tile_deck_instance.shuffle_tile_deck()
 
-        for _ in tqdm(range(TRY_NUM), leave=False):
-            tile_deck_instance = tile_deck(super_bingo = SUPER_BINGO)
-            tile_deck_instance.remove_tehai(tehai_list)
-            tile_deck_instance.remove_tehai(execlude_tile_list)
-            tile_deck_instance.set_junme(turn)
-            tile_deck_instance.shuffle_tile_deck()
+        tip_count_dict = handle_agari(tile_deck_instance, tehai_list)
 
-            tip_num, renchan_num = handle_agari(tile_deck_instance, tehai_list)
-            tip_num_dict[turn].append(tip_num)
-            renchan_num_dict[turn].append(renchan_num)
-            del tile_deck_instance
+        for turn in TURN_LIST:
 
+            # t巡目における最大連荘数 = int(62 - t*3) / 2 [トン]
+            max_renchan_num = int( (62 - turn*3) / 2 )
+
+            for i in range(max_renchan_num):
+                # 0枚の場合
+                if len(tip_count_dict) == 0:
+                    tip_num_dict[turn].append(0)
+                    renchan_num_dict[turn].append(0)
+                    # print(f'{turn}巡目, 0/{max_renchan_num}連荘, 0枚')
+                    break
+
+                # 1枚以上の場合、考えうる最大連荘数から順に探索
+                if max_renchan_num - i in tip_count_dict:
+                    tip_num_dict[turn].append(tip_count_dict[max_renchan_num - i])
+                    renchan_num_dict[turn].append(max_renchan_num - i)
+                    # print(f'{turn}巡目, {max_renchan_num - i}/{max_renchan_num}連荘, {tip_count_dict[max_renchan_num - i]}枚')
+                    break
+            # print(tip_num_dict[turn])
+                
+
+    for turn in TURN_LIST:
         tip_num_dict[turn].sort()
         counters[turn] = Counter(tip_num_dict[turn])
+
         max_graph = max(max(tip_num_dict[turn]), max_graph)
-        for i in range(1, max_graph):
+        for i in range(0, max_graph):
             if i not in counters[turn]:
                 counters[turn][i] = 0
         counters[turn] = dict(sorted(counters[turn].items()))
-        plt.plot(list(counters[turn].keys()), list(counters[turn].values()), label=f'turn:{turn}', marker='', linestyle='-', linewidth=1)
+        plt.plot(list(counters[turn].keys()), [count / sum(counters[turn].values()) * 100 for count in counters[turn].values()], label=f'turn:{turn}', marker='', linestyle='-', linewidth=1)
 
         # テーブル表示の処理
         pd.options.display.float_format = '{:.2f}'.format
-        data = {'tip': [], 'freq': []}
+        data = {'tip num': [], 'freq': []}
 
-        data['tip'].append("0　　")
+        data['tip num'].append("0　　")
         data['freq'].append(counters[turn][0])
 
         for i in range(1, max_graph+1, TIP_WIDTH):
@@ -383,7 +399,7 @@ def main():
                 group_data = [value for value in range(i, i+99999) if value in counters[turn]]
 
             freq = sum(counters[turn].get(value, 0) for value in group_data)
-            data['tip'].append(group)
+            data['tip num'].append(group)
             data['freq'].append(freq)
 
         df = pd.DataFrame(data)
@@ -393,7 +409,7 @@ def main():
         df['freq%'] = df['freq'] / TRY_NUM * 100
         df.rename(columns={'freq%': f'　turn:{turn}　'}, inplace=True)
 
-        df = df.set_index('tip')
+        df = df.set_index('tip num')
         df.loc['平均 (枚)'] = round(tip_average, 3)
         # df.loc['ren'] = round(renchan_average, 1)
         df.loc['継続　(%)'] = round(100 - 100/renchan_average, 3)
@@ -405,8 +421,8 @@ def main():
     print(df_result)
 
     # グラフの装飾
-    plt.xlabel('tip')
-    plt.ylabel('freq')
+    plt.xlabel('tip num')
+    plt.ylabel('freq (%)')
     if SUPER_BINGO:
         title = 'SUPER_BINGO'
     else:
