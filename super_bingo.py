@@ -1,20 +1,20 @@
 '''
-以下設定部分
+設定部分
 '''
 
 # 手牌の牌姿を指定: 凡例: 19m456p789s / 東西南北白發中 or 1~7z / 花 or 華 or x
-TEHAI = '234777p234777s22zx'
+TEHAI = '234777p234789s77zx'
 
 # 除外する牌を指定: 凡例: 19m456p789s / 東西南北白發中 or 1~7z / 花 or 華 or x
-# EXECLUDE_TILE = 'xxxx' 
+EXECLUDE_TILE = '華'
 
 # 一発、三倍満、AOPなどによるストック数(転落保障回数)
 V_STOCK = 1
 
 # 試行回数
-TRY_NUM = 50000
+TRY_NUM = 10000
 
-# 何巡目のシミュレーションを行うか(半角数字をカンマ区切りで指定)
+# 何巡目のシミュレーションを表示するか(半角数字をカンマ区切りで指定)
 TURN_LIST = [6,12,18]
 
 # True:スーパービンゴ / False:萬子入り
@@ -34,12 +34,13 @@ TULIP = True
 
 
 '''
-以下コード部分
+コード部分
 '''
 import random
 import re
 import matplotlib.pyplot as plt
 import pandas as pd
+import tqdm.notebook
 from tqdm import tqdm
 from collections import Counter
 
@@ -102,7 +103,7 @@ class tile_deck():
             raise Exception("牌山が不足しています。")
 
 
-# 手牌を入力する
+# 手牌　str -> list
 def make_tile_list(tehai_input = ''):
     # 正規表現で検索
     manzu = re.search(r'\d+m', tehai_input)
@@ -230,7 +231,7 @@ def handle_agari(tile_deck_instance, tehai_list = []):
             total_chip_count += chip_count1
             total_chip_count += chip_count2
 
-            # スーパービンゴでは華による突確なし            
+            # スーパービンゴでは華による突確なし
             if SUPER_BINGO:
                 if chip_count1 >= 6 and draw_hai1 != 'x':
                     kakuhen += 1
@@ -241,7 +242,7 @@ def handle_agari(tile_deck_instance, tehai_list = []):
                     kakuhen += 1
                 if chip_count2 >= 6:
                     kakuhen += 1
-            
+
             if chip_count1 == 0 and chip_count2 == 0:
                 v_stock -= 1
                 if v_stock < 0:
@@ -251,7 +252,7 @@ def handle_agari(tile_deck_instance, tehai_list = []):
     # 16Rの処理
     if kakuhen >= 2:
         total_chip_count *= 2
-    
+
 
     return total_chip_count, renchan
 
@@ -319,7 +320,7 @@ def calc_norihai(draw_hai):
 
     else:
         return [draw_hai]
-    
+
 
 
 
@@ -376,7 +377,7 @@ def main():
         data['freq'].append(counters[turn][0])
 
         for i in range(1, max_graph+1, TIP_WIDTH):
-            group = f"{i}-　　"
+            group = f"{i}-　(%)　"
             group_data = [value for value in range(i, i+TIP_WIDTH) if value in counters[turn]]
             if i == max_graph:
                 group_data = [value for value in range(i, i+99999) if value in counters[turn]]
@@ -390,14 +391,13 @@ def main():
         tip_average = sum(tip_num_dict[turn]) / TRY_NUM
         renchan_average = sum(renchan_num_dict[turn]) / TRY_NUM
         df['freq%'] = df['freq'] / TRY_NUM * 100
-        df['freq%'] = df['freq%']
-        df.rename(columns={'freq%': f'turn:{turn}[%]'}, inplace=True)
+        df.rename(columns={'freq%': f'　turn:{turn}　'}, inplace=True)
 
         df = df.set_index('tip')
-        df.loc['平均'] = round(tip_average, 3)
+        df.loc['平均 (枚)'] = round(tip_average, 3)
         # df.loc['ren'] = round(renchan_average, 1)
-        df.loc['継続[%]'] = round(100 - 100/renchan_average, 3)
-        df.loc['最大'] = max(tip_num_dict[turn])
+        df.loc['継続　(%)'] = round(100 - 100/renchan_average, 3)
+        df.loc['最大 (枚)'] = max(tip_num_dict[turn])
         df.drop('freq', axis=1, inplace=True)
         result_dfs.append(df)
 
