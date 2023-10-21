@@ -3,25 +3,25 @@
 '''
 
 # 手牌の牌姿を指定: 凡例: 19m456p789s / 東西南北白發中 or 1~7z / 花 or 華 or x
-TEHAI = '23477789p111999s11zx'
+TEHAI = '333667788p12344s4z'
 
 # 除外する牌を指定: 凡例: 19m456p789s / 東西南北白發中 or 1~7z / 花 or 華 or x
-EXECLUDE_TILE = '華'
+EXECLUDE_TILE = 'xxxx'
 
 # 一発、三倍満、AOPなどによるストック数(転落保障回数)
-V_STOCK = 1
+V_STOCK = 0
 
 # 試行回数
-TRY_NUM = 50000
+TRY_NUM = 100000
 
 # 何巡目のシミュレーションを表示するか(半角数字をカンマ区切りで指定)
-TURN_LIST = [6,12,18]
+TURN_LIST = [2]
 
 # True:スーパービンゴ / False:萬子入り
-SUPER_BINGO = True
+SUPER_BINGO = False
 
 # 何枚区切りで結果表示するか
-TIP_WIDTH = 50
+TIP_WIDTH = 1
 
 # 萬子の数え方 / QUASAR:通常の数え方 / YUNYUN2:萬子2枚乗り / YUNYUN3:萬子3枚乗り
 # SUPER_BINGOがTrueのとき無視されます
@@ -30,7 +30,7 @@ MANZU_COUNT = 'QUASAR'
 # MANZU_COUNT = 'YUNYUN2'
 
 # True:チューリップ / False:アリス      # アリスの場合,常に非確変
-TULIP = True
+TULIP = False
 
 
 '''
@@ -386,7 +386,7 @@ def main():
         plt.plot(list(counters[turn].keys()), [count / sum(counters[turn].values()) * 100 for count in counters[turn].values()], label=f'turn:{turn}', marker='', linestyle='-', linewidth=1)
 
         # テーブル表示の処理
-        pd.options.display.float_format = '{:.2f}'.format
+        pd.options.display.float_format = '{:.5f}'.format
         data = {'tip num': [], 'freq': []}
 
         data['tip num'].append("0　　")
