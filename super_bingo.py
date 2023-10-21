@@ -405,7 +405,7 @@ def main():
         df = pd.DataFrame(data)
 
         tip_average = sum(tip_num_dict[turn]) / TRY_NUM
-        renchan_average = sum(renchan_num_dict[turn]) / TRY_NUM
+        renchan_average = sum(renchan_num_dict[turn]) / TRY_NUM + 1
         df['freq%'] = df['freq'] / TRY_NUM * 100
         df.rename(columns={'freq%': f'　turn:{turn}　'}, inplace=True)
 
